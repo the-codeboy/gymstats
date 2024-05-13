@@ -1,3 +1,4 @@
+import pickle
 import requests
 import datetime
 from PIL import Image
@@ -23,30 +24,63 @@ headers = {
     'TE': 'trailers'
 }
 
+
+def save_images():
+    with open('images.pickle', 'wb') as f:
+        pickle.dump(images, f)
+
+def load_images():
+    try:
+        with open('images.pickle', 'rb') as f:
+            return pickle.load(f)
+    except Exception:
+        return {}
+
+images = load_images()
+previous_value = -1
+
 def get_people_at_the_gym():
     response = requests.get(url, headers=headers)
+    if response.content in images:
+        #print(f'{datetime.datetime.now()}: {response.content} already in cache')
+        return images[response.content]
     gif = io.BytesIO(response.content)
     image = Image.open(gif)
-    text = pytesseract.image_to_string(image, config='--oem 3 --psm 6')
+    text = pytesseract.image_to_string(image, config='--oem 3 --psm 6  outputbase digits')
     people_at_the_gym = int(text)
+    images[response.content] = people_at_the_gym
+    save_images()
     return people_at_the_gym
 
 def save_people_at_the_gym():
     people_at_the_gym = get_people_at_the_gym()
-    c.execute("INSERT INTO gym VALUES (datetime('now'), ?)", (people_at_the_gym,))
+    global previous_value
+    if people_at_the_gym == previous_value:
+        #print(f'{datetime.datetime.now()}: {people_at_the_gym} same as previous value, skipping...')
+        return
+    previous_value = people_at_the_gym
+    if not 0 <= people_at_the_gym <= 200:
+        print(f'{datetime.datetime.now()}: {people_at_the_gym} this seems suspicious, skipping...')
+        return
+    c.execute("INSERT INTO gym VALUES (datetime('now','localtime'), ?)", (people_at_the_gym,))
     conn.commit()
     print(f'{datetime.datetime.now()}: {people_at_the_gym}')
-
+    
 if __name__ == '__main__':
     conn = sqlite3.connect('people_at_the_gym.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS gym
             (timestamp DATETIME, people integer)''')
-    schedule.every().minute.do(save_people_at_the_gym)
+    save_people_at_the_gym()
+    schedule.every().second.do(save_people_at_the_gym)
     try:
         while True:
-            schedule.run_pending()
-            next_job_time = schedule.next_run() - datetime.datetime.now()
-            time.sleep(next_job_time.total_seconds())
+            try:
+                schedule.run_pending()
+                next_job_time = schedule.next_run() - datetime.datetime.now()
+                time.sleep(next_job_time.total_seconds())
+            except Exception as e:
+                print(e)
+                time.sleep(50)
     finally:
         conn.close()
