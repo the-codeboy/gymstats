@@ -1,5 +1,7 @@
+from calendar import c
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 import os
 
 app = Flask(__name__)
@@ -24,4 +26,6 @@ class Gym(db.Model):
         return {'labels': labels, 'values': values}
 
 if __name__ == '__main__':
-    app.run()
+    #app.run(debug=True)
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=8080)

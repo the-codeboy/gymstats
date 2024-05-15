@@ -46,7 +46,13 @@ def get_people_at_the_gym():
         return images[response.content]
     gif = io.BytesIO(response.content)
     image = Image.open(gif)
-    text = pytesseract.image_to_string(image, config='--oem 3 --psm 6  outputbase digits')
+
+    # Create a new image with a white background
+    new_image = Image.new('RGB', (image.width + 20, image.height + 20), 'white')
+    # Paste the original image into the center of the new image
+    new_image.paste(image, (10, 10))
+    
+    text = pytesseract.image_to_string(new_image, config='--oem 3 --psm 6  outputbase digits')
     people_at_the_gym = int(text)
     images[response.content] = people_at_the_gym
     save_images()

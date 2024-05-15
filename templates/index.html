@@ -1,21 +1,41 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>People at the Gym</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script defer data-domain="gymstats.the-codeboy.com" src="http://plausible.the-codeboy.com/js/script.js"></script>
 </head>
+
 <body>
     <canvas id="chart"></canvas>
     <script>
         var ctx = document.getElementById('chart').getContext('2d');
         var chart;
-    
+
+        function movingAverage(data, windowSize) {
+            var smoothedData = [];
+            for (var i = 0; i < data.length; i++) {
+                var start = Math.max(0, i - Math.floor(windowSize / 2));
+                var end = Math.min(data.length - 1, i + Math.floor(windowSize / 2));
+                var sum = 0;
+                for (var j = start; j <= end; j++) {
+                    sum += data[j];
+                }
+                smoothedData.push(sum / (end - start + 1));
+            }
+            return smoothedData;
+        }
+
         function fetchDataAndUpdateChart() {
             fetch('/data')
                 .then(response => response.json())
                 .then(data => {
+                    //var windowSize = 60
+                    //data.values = movingAverage(data.values, windowSize);
                     if (chart) {
                         chart.data.labels = data.labels;
                         chart.data.datasets[0].data = data.values;
@@ -29,20 +49,29 @@
                                     label: 'People at the Gym',
                                     data: data.values,
                                     borderColor: 'rgb(75, 192, 192)',
-                                    tension: 0.1
+                                    borderWidth: 2,
+                                    fill: true,
+                                    pointRadius: 0,
+                                    lineTension: 0.5
                                 }]
                             },
                             options: {
                                 plugins: {
                                     legend: {
                                         display: false
+                                    },
+                                    splineInterpolation: {
+                                        type: 'cubic-interpolation'
+                                    },
+                                    tooltip: {
+                                        enabled: true
                                     }
                                 },
                                 scales: {
                                     x: {
                                         type: 'time',
                                         time: {
-                                            unit: 'day'
+                                            unit: 'hour'
                                         }
                                     }
                                 }
@@ -51,9 +80,10 @@
                     }
                 });
         }
-    
+
         fetchDataAndUpdateChart();
         setInterval(fetchDataAndUpdateChart, 60000);
-        </script>
+    </script>
 </body>
+
 </html>
