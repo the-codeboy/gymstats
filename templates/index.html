@@ -2,84 +2,203 @@
 <html>
 
 <head>
-    <title>People at the Gym</title>
+    <title>RWTH Gym Statistics</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
     <script
         src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <script defer data-domain="gymstats.the-codeboy.com" src="http://plausible.the-codeboy.com/js/script.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"
+        integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+"
+        crossorigin="anonymous"></script>
+    <script defer data-domain="gymstats.the-codeboy.com" src="https://plausible.the-codeboy.com/js/script.outbound-links.js"></script>
+    <style>
+        #chart {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+        }
+
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+        }
+
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+        }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Statistics about how many people are at the RWTH Gym">
+    <meta name="author" content="The Codeboy">
+    <meta name="keywords" content="gym, rwth, statistics, tracker">
+    <link rel="icon" href="https://the-codeboy.com/img/peeper-32.png" type="image/x-icon">
 </head>
 
 <body>
-    <canvas id="chart"></canvas>
+    <div class="container pt-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h1 class="text-center">People at the RWTH Gym</h1>
+                <p class="text-center">This page shows the number of people at the RWTH Gym over time. The data is from
+                    the <a href="https://buchung.hsz.rwth-aachen.de/angebote/aktueller_zeitraum/_Auslastung.html"
+                        target="_blank">the hochschulsport website</a>. The data is updated automatically every minute</p>
+                        <p class="text-center text-danger">This is still a work in progress</p>
+                <canvas id="chart"></canvas>
+                <div class="row justify-content-center">
+                    <div class="col-lg-8 d-flex justify-content-center">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="actualDataCheckbox" unchecked>
+                            <label class="form-check-label" for="actualDataCheckbox">Actual data</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="approximationCheckbox" checked>
+                            <label class="form-check-label" for="approximationCheckbox">Approximation</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="startDate">Start Date:</label>
+                    <input type="date" id="startDate" name="startDate">
+                </div>
+                <div class="form-group">
+                    <label for="endDate">End Date:</label>
+                    <input type="date" id="endDate" name="endDate">
+                </div>
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <h2 class="text-center">Related Projects</h2>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-4">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h3 class="card-title text-center">RWTF</h3>
+                        <p class="card-text text-center">After making this I found a project by <a
+                                href="https://github.com/dorian-K" target="_blank">dorian-K</a>, that does pretty much
+                            the same thing. You can check it out <a href="https://rwtf.dorianko.ch/"
+                                target="_blank">here</a></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h3 class="card-title text-center">Studyscraper</h3>
+                        <p class="card-text text-center"><a href="https://study.the-codeboy.com"
+                                target="_blank">Studyscraper</a> was a website that allowed you to download documents
+                            from Studydrive for free. Unfortunately I had to recently shut it down because they
+                            threatened me with legal action.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h3 class="card-title text-center">HTWR</h3>
+                        <p class="card-text text-center">HTWR is a website a friend of mine made. It has lots of helpful
+                            and funny resources to help computer science students studying at RWTH. Check it out <a
+                                href="https://htwr-aachen.de" target="_blank">here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
     <script>
         var ctx = document.getElementById('chart').getContext('2d');
-        var chart;
+        var chart, data;
 
-        function movingAverage(data, windowSize) {
-            var smoothedData = [];
-            for (var i = 0; i < data.length; i++) {
-                var start = Math.max(0, i - Math.floor(windowSize / 2));
-                var end = Math.min(data.length - 1, i + Math.floor(windowSize / 2));
-                var sum = 0;
-                for (var j = start; j <= end; j++) {
-                    sum += data[j];
-                }
-                smoothedData.push(sum / (end - start + 1));
-            }
-            return smoothedData;
-        }
+        var today = new Date().toISOString().substring(0, 10);
+        var startDate = today;
+        var endDate = today;
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+
+        document.getElementById('startDate').addEventListener('change', function (event) {
+            startDate = event.target.value;
+            fetchDataAndUpdateChart();
+        });
+        document.getElementById('endDate').addEventListener('change', function (event) {
+            endDate = event.target.value;
+            fetchDataAndUpdateChart();
+        });
 
         function fetchDataAndUpdateChart() {
-            fetch('/data')
+            var url = '/daily';
+            if (startDate && endDate) {
+                url += '?startdate=' + startDate + '&enddate=' + endDate;
+            }
+
+            fetch(url)
                 .then(response => response.json())
-                .then(data => {
-                    //var windowSize = 60
-                    //data.values = movingAverage(data.values, windowSize);
-                    if (chart) {
-                        chart.data.labels = data.labels;
-                        chart.data.datasets[0].data = data.values;
-                        chart.update();
-                    } else {
-                        chart = new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: data.labels,
-                                datasets: [{
-                                    label: 'People at the Gym',
-                                    data: data.values,
-                                    borderColor: 'rgb(75, 192, 192)',
-                                    borderWidth: 2,
-                                    fill: true,
-                                    pointRadius: 0,
-                                    lineTension: 0.5
-                                }]
-                            },
-                            options: {
-                                plugins: {
-                                    legend: {
-                                        display: false
-                                    },
-                                    splineInterpolation: {
-                                        type: 'cubic-interpolation'
-                                    },
-                                    tooltip: {
-                                        enabled: true
-                                    }
-                                },
-                                scales: {
-                                    x: {
-                                        type: 'time',
-                                        time: {
-                                            unit: 'hour'
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    }
+                .then(json => {
+                    data = json;
+                    updateChart();
                 });
         }
+
+        function updateChart() {
+            var actualDataCheckbox = document.getElementById('actualDataCheckbox');
+            var approximationCheckbox = document.getElementById('approximationCheckbox');
+
+            if (chart) {
+                chart.data.labels = data.labels;
+                chart.data.datasets[0].data = actualDataCheckbox.checked ? data.values : [];
+                chart.data.datasets[1].data = approximationCheckbox.checked ? data.approximated_values : [];
+                chart.update();
+            } else {
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'People at the Gym',
+                            data: actualDataCheckbox.checked ? data.values : [],
+                            borderColor: 'rgb(75, 192, 192)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                        },
+                        {
+                            label: 'Polynomial Fit',
+                            data: approximationCheckbox.checked ? data.approximated_values : [],
+                            borderColor: 'rgb(255, 99, 132)',
+                            borderWidth: 5,
+                            fill: true,
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            pointRadius: 0,
+                        }
+                        ]
+                    },
+                    options: {
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'hour'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        document.getElementById('actualDataCheckbox').addEventListener('change', updateChart);
+        document.getElementById('approximationCheckbox').addEventListener('change', updateChart);
 
         fetchDataAndUpdateChart();
         setInterval(fetchDataAndUpdateChart, 60000);

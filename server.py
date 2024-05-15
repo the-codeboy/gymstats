@@ -1,7 +1,9 @@
-from calendar import c
-from flask import Flask, render_template
+from datetime import date
+from datetime import datetime, date
+from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+import numpy as np
+import pandas as pd
 import os
 
 app = Flask(__name__)
@@ -12,20 +14,37 @@ db = SQLAlchemy(app)
 
 
 class Gym(db.Model):
-    timestamp = db.Column(db.DateTime, primary_key=True)
+    timestamp = db.Column(db.DateTime, primary_key=True, index=True)
     people = db.Column(db.Integer)
     @app.route('/')
     def home():
         return render_template('index.html')
 
-    @app.route('/data')
+    @app.route('/daily')
     def get_data():
-        data = Gym.query.all()
-        labels = [row.timestamp.strftime('%Y-%m-%d %H:%M') for row in data]
-        values = [row.people for row in data]
-        return {'labels': labels, 'values': values}
+        startdate_str = request.args.get('startdate')
+        startdate = datetime.strptime(startdate_str, '%Y-%m-%d').date() if startdate_str else date.today()
+        enddate_str = request.args.get('enddate')
+        enddate = datetime.strptime(enddate_str, '%Y-%m-%d').date() if enddate_str else date.today()
+        data = Gym.query.filter(db.func.date(Gym.timestamp).between(startdate, enddate)).order_by(Gym.timestamp).all()
+        df = pd.DataFrame([(row.timestamp, row.people) for row in data], columns=['timestamp', 'people'])
+        df.set_index('timestamp', inplace=True)
+        
+        # Resample to 1-second intervals and forward fill missing values
+        df_resampled = df.resample('s').ffill()
+        
+        df_resampled = df_resampled.resample('min').mean().ffill()  # Resample to minute averages and forward fill missing values
+
+        # Fit a polynomial to the minute averages
+        x = np.arange(len(df_resampled))
+        coefficients = np.polyfit(x, df_resampled['people'], 17)
+        poly_function = np.poly1d(coefficients)
+        approximated_values = poly_function(x).clip(0, 200)  # Clip values to be between 0 and 200
+
+        return {'labels': df_resampled.index.strftime('%Y-%m-%d %H:%M:%S').tolist(), 'values': df_resampled['people'].tolist(), 'approximated_values': approximated_values.tolist()}
+
 
 if __name__ == '__main__':
-    #app.run(debug=True)
-    from waitress import serve
-    serve(app, host="0.0.0.0", port=8080)
+    app.run(debug=True)
+    #from waitress import serve# uncomment in production
+    #serve(app, host="0.0.0.0", port=8080)
