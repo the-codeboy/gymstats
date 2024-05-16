@@ -61,11 +61,11 @@
                 </div>
                 <div class="form-group">
                     <label for="startDate">Start Date:</label>
-                    <input type="date" id="startDate" name="startDate">
+                    <input type="date" id="startDate" name="startDate" min="{{ first_date }}" max="{{ last_date }}">
                 </div>
                 <div class="form-group">
                     <label for="endDate">End Date:</label>
-                    <input type="date" id="endDate" name="endDate">
+                    <input type="date" id="endDate" name="endDate" min="{{ first_date }}" max="{{ last_date }}">
                 </div>
             </div>
         </div>
@@ -114,11 +114,12 @@
         var ctx = document.getElementById('chart').getContext('2d');
         var chart, data;
 
-        var today = new Date().toISOString().substring(0, 10);
-        var startDate = today;
-        var endDate = today;
-        document.getElementById('startDate').value = today;
-        document.getElementById('endDate').value = today;
+        var firstDate = "{{ first_date }}";
+        var lastDate = "{{ last_date }}";
+        var startDate = lastDate;
+        var endDate = lastDate;
+        document.getElementById('startDate').value = startDate;
+        document.getElementById('endDate').value = endDate;
 
         document.getElementById('startDate').addEventListener('change', function (event) {
             startDate = event.target.value;

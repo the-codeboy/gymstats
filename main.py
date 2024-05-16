@@ -60,17 +60,18 @@ def get_people_at_the_gym():
 
 def save_people_at_the_gym():
     people_at_the_gym = get_people_at_the_gym()
-    global previous_value
-    if people_at_the_gym == previous_value:
-        #print(f'{datetime.datetime.now()}: {people_at_the_gym} same as previous value, skipping...')
-        return
-    previous_value = people_at_the_gym
     if not 0 <= people_at_the_gym <= 200:
         print(f'{datetime.datetime.now()}: {people_at_the_gym} this seems suspicious, skipping...')
         return
-    c.execute("INSERT INTO gym VALUES (datetime('now','localtime'), ?)", (people_at_the_gym,))
-    conn.commit()
-    print(f'{datetime.datetime.now()}: {people_at_the_gym}')
+    
+    c.execute("SELECT people FROM gym ORDER BY timestamp DESC LIMIT 1")
+    latest_data_point = c.fetchone()
+
+    # If there is no latest data point or the latest data point is not the same as the current data point
+    if latest_data_point is None or latest_data_point[0] != people_at_the_gym:
+        c.execute("INSERT INTO gym VALUES (datetime('now','localtime'), ?)", (people_at_the_gym,))
+        conn.commit()
+        print(f'{datetime.datetime.now()}: {people_at_the_gym}')
     
 if __name__ == '__main__':
     conn = sqlite3.connect('people_at_the_gym.db')

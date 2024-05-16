@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import os
 
+from requests import get
+
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'people_at_the_gym.db')
@@ -13,12 +15,18 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 db = SQLAlchemy(app)
 
 
+def get_first_date():
+    return Gym.query.order_by(Gym.timestamp).first().timestamp.date()
+    
+def get_last_date():
+    return Gym.query.order_by(Gym.timestamp.desc()).first().timestamp.date()
+
 class Gym(db.Model):
     timestamp = db.Column(db.DateTime, primary_key=True, index=True)
     people = db.Column(db.Integer)
     @app.route('/')
     def home():
-        return render_template('index.html')
+        return render_template('index.html', first_date=get_first_date(), last_date=get_last_date())
 
     @app.route('/daily')
     def get_data():
@@ -43,8 +51,7 @@ class Gym(db.Model):
 
         return {'labels': df_resampled.index.strftime('%Y-%m-%d %H:%M:%S').tolist(), 'values': df_resampled['people'].tolist(), 'approximated_values': approximated_values.tolist()}
 
-
 if __name__ == '__main__':
-    app.run(debug=True)
-    #from waitress import serve# uncomment in production
-    #serve(app, host="0.0.0.0", port=8080)
+    #app.run(debug=True)
+    from waitress import serve# uncomment in production
+    serve(app, host="0.0.0.0", port=8080)
