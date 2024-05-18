@@ -51,11 +51,15 @@
                     <div class="col-lg-8 d-flex justify-content-center">
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" id="actualDataCheckbox" unchecked>
-                            <label class="form-check-label" for="actualDataCheckbox">Actual data</label>
+                            <label class="form-check-label" for="actualDataCheckbox">Raw data</label>
                         </div>
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" id="approximationCheckbox" checked>
                             <label class="form-check-label" for="approximationCheckbox">Approximation</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="approximationSplineCheckbox" checked>
+                            <label class="form-check-label" for="approximationSplineCheckbox">Approximation (Spline)</label>
                         </div>
                     </div>
                 </div>
@@ -147,11 +151,14 @@
         function updateChart() {
             var actualDataCheckbox = document.getElementById('actualDataCheckbox');
             var approximationCheckbox = document.getElementById('approximationCheckbox');
+            var approximationSplineCheckbox = document.getElementById('approximationSplineCheckbox');
 
             if (chart) {
                 chart.data.labels = data.labels;
                 chart.data.datasets[0].data = actualDataCheckbox.checked ? data.values : [];
                 chart.data.datasets[1].data = approximationCheckbox.checked ? data.approximated_values : [];
+                chart.data.datasets[2].data = approximationSplineCheckbox.checked ? data.approximated_spline : [];
+                chart.data.datasets[2].borderWidth = data.labels.length < 2 ? 5 : 2;
                 chart.update();
             } else {
                 chart = new Chart(ctx, {
@@ -173,6 +180,15 @@
                             fill: true,
                             backgroundColor: 'rgba(255, 99, 132, 0.2)',
                             pointRadius: 0,
+                        },
+                        {
+                            label: 'Spline Fit',
+                            data: approximationSplineCheckbox.checked ? data.approximated_spline : [],
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 2,
+                            fill: true,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            pointRadius: 0,
                         }
                         ]
                     },
@@ -182,7 +198,7 @@
                                 display: false
                             },
                             tooltip: {
-                                enabled: false
+                                enabled: true
                             }
                         },
                         scales: {
@@ -200,6 +216,7 @@
 
         document.getElementById('actualDataCheckbox').addEventListener('change', updateChart);
         document.getElementById('approximationCheckbox').addEventListener('change', updateChart);
+        document.getElementById('approximationSplineCheckbox').addEventListener('change', updateChart);
 
         fetchDataAndUpdateChart();
         setInterval(fetchDataAndUpdateChart, 60000);
