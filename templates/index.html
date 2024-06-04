@@ -159,6 +159,7 @@
                 chart.data.datasets[1].data = approximationCheckbox.checked ? data.approximated_values : [];
                 chart.data.datasets[2].data = approximationSplineCheckbox.checked ? data.approximated_spline : [];
                 chart.data.datasets[2].borderWidth = data.labels.length < 2 ? 5 : 2;
+                chart.options.scales.x.time.unit = data.labels.length > 100 ? 'day' : 'hour';
                 chart.update();
             } else {
                 chart = new Chart(ctx, {
