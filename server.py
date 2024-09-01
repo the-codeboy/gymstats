@@ -63,13 +63,18 @@ class Gym(db.Model):
         days = (enddate - startdate).days + 1
         
         df_resampled = df_resampled.resample('min' if days < 3 else '10min' if days < 5 else '30min').mean().ffill()  # Resample to minute averages and forward fill missing values
-        
-        approximate_poly = fit_polynomial(df_resampled['people'])
-        approximate_spline = fit_spline(df_resampled['people'])
 
-        return {'labels': df_resampled.index.strftime('%Y-%m-%d %H:%M:%S').tolist(), 'values': df_resampled['people'].tolist(), 'approximated_values': approximate_poly.tolist(), 'approximated_spline': approximate_spline.tolist()}
+        # add a zero value in front and at the end to make sure the spline goes to zero
+        df_resampled = pd.concat([pd.DataFrame({'people': [0]}, index=[df_resampled.index[0] - pd.Timedelta(1, 's')]), df_resampled, pd.DataFrame({'people': [0]}, index=[df_resampled.index[-1] + pd.Timedelta(1, 's')])])
+        
+        #approximate_poly = fit_polynomial(df_resampled['people'])
+        approximate_spline = fit_spline(df_resampled['people'])
+        
+
+        
+        return {'labels': df_resampled.index.strftime('%Y-%m-%d %H:%M:%S').tolist(), 'approximated_spline': approximate_spline.tolist()}
 
 if __name__ == '__main__':
-    #app.run(debug=True)
-    from waitress import serve# uncomment in production
+    app.run(debug=True)
+    #from waitress import serve# uncomment in production
     serve(app, host="0.0.0.0", port=8080)
